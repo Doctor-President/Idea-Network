@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Idea Network</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@300;400&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#002fa7;--bg2:#001f7a;--text-dark:#f5f2ee;--text-mid:#c8c4bc;--text-light:#8a9cc0;
+  --idea-fill:#c8d4e8;--idea-stroke:#8fa8cc;--idea-text:#1e2d42;
+  --ghost-fill:#dce8dc;--ghost-stroke:#88b888;--ghost-text:#1e381e;
+  --panel-border:rgba(255,255,255,0.15);--shadow:rgba(0,0,20,0.35);
+}
+body{background:var(--bg);width:100vw;height:100vh;overflow:hidden;font-family:'DM Sans',sans-serif;color:var(--text-dark);user-select:none;}
+canvas{position:fixed;inset:0;}
+
+/* HEADER */
+#hdr{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:18px 24px;z-index:10;pointer-events:none;}
+.wordmark{display:flex;flex-direction:column;line-height:1;gap:2px;}
+.wordmark-eye{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:rgba(245,242,238,0.5);}
+.wordmark-name{font-size:18px;font-weight:500;color:rgba(245,242,238,0.9);letter-spacing:-.01em;}
+
+/* ADD BAR */
+#add-bar{position:fixed;top:16px;right:20px;z-index:20;display:flex;gap:6px;align-items:center;pointer-events:all;}
+#node-input{background:white;border:1px solid var(--panel-border);border-radius:8px;color:#002fa7;font-family:'DM Sans',sans-serif;font-size:12px;padding:8px 14px;width:180px;outline:none;box-shadow:0 1px 4px var(--shadow);transition:border-color .2s;}
+#node-input::placeholder{color:#8a9cc0;}
+#node-input:focus{border-color:#002fa7;}
+#add-btn{background:var(--idea-fill);border:1px solid var(--idea-stroke);border-radius:8px;color:var(--idea-text);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:8px 14px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+#add-btn:hover{background:var(--idea-stroke);color:white;}
+
+/* TOP BUTTONS */
+#top-btns{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:20;display:flex;gap:8px;pointer-events:all;}
+.top-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:30px;border:1px solid var(--panel-border);background:white;color:var(--text-mid);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;box-shadow:0 1px 6px var(--shadow);transition:all .18s;}
+.top-btn:hover{background:var(--bg2);}
+.top-btn.danger-btn{border-color:#cc8888;color:#882020;}
+.top-btn.danger-btn:hover{background:#f8e8e8;}
+
+/* TOOLBAR */
+#toolbar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:2px;background:white;border:1px solid var(--panel-border);border-radius:40px;padding:5px 7px;box-shadow:0 2px 12px var(--shadow);pointer-events:all;}
+.tb-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:30px;border:none;background:transparent;color:var(--text-light);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;transition:all .18s;white-space:nowrap;}
+.tb-btn:hover{color:var(--text-dark);}
+.tb-btn.active{background:var(--bg2);color:var(--text-dark);font-weight:500;}
+.tb-swatch{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(0,0,0,0.15);}
+.tb-divider{width:1px;height:18px;background:var(--panel-border);margin:0 3px;}
+.tb-generate{display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:30px;border:1.5px solid #88b888;background:#f0f7f0;color:#3a6a3a;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .18s;}
+.tb-generate:hover{background:#dce8dc;border-color:#5a9a5a;}
+.tb-generate:disabled{opacity:.4;cursor:not-allowed;}
+.tb-generate.loading{animation:loadpulse 1s ease-in-out infinite;}
+@keyframes loadpulse{0%,100%{opacity:.5}50%{opacity:1}}
+
+/* LEGEND */
+#legend{position:fixed;bottom:24px;right:24px;z-index:10;background:white;border:1px solid var(--panel-border);border-radius:10px;padding:12px 16px;box-shadow:0 1px 6px var(--shadow);pointer-events:none;min-width:130px;}
+.leg-title{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-light);margin-bottom:9px;}
+.leg-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:10px;color:var(--text-mid);}
+.leg-row:last-child{margin-bottom:0;}
+.leg-swatch{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(0,0,0,0.12);}
+
+/* TOOLTIP */
+#tooltip{position:fixed;z-index:100;max-width:240px;opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;}
+#tooltip.show{opacity:1;transform:translateY(0);pointer-events:all;}
+.tt-inner{background:white;border:1px solid var(--panel-border);border-radius:12px;padding:14px 16px;box-shadow:0 6px 24px var(--shadow);}
+.tt-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.tt-type{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-light);}
+.tt-close{width:18px;height:18px;border-radius:50%;border:1px solid var(--panel-border);background:var(--bg2);color:var(--text-light);font-size:9px;cursor:pointer;flex-shrink:0;transition:all .15s;display:none;pointer-events:all;align-items:center;justify-content:center;}
+.tt-close:hover{background:var(--panel-border);color:var(--text-dark);}
+.tt-label{font-size:14px;font-weight:500;color:#002fa7;display:block;margin-bottom:5px;line-height:1.2;}
+.tt-desc{font-size:11px;line-height:1.55;color:var(--text-mid);display:block;}
+.tt-origin{font-size:10px;color:#5a9a5a;display:block;margin-top:6px;line-height:1.4;}
+.tt-cluster{font-size:10px;display:block;margin-top:6px;line-height:1.4;}
+.tt-scoring{font-size:10px;color:#b89030;display:flex;align-items:center;gap:5px;margin-top:6px;}
+.tt-scoring-dot{width:6px;height:6px;border-radius:50%;background:#b89030;animation:scorepulse .8s ease-in-out infinite;}
+@keyframes scorepulse{0%,100%{opacity:.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}
+.tt-promote{margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;border-radius:8px;border:1.5px solid #88b888;background:#f0f7f0;color:#3a6a3a;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;cursor:pointer;pointer-events:all;transition:all .18s;width:100%;}
+.tt-promote:hover{background:#dce8dc;border-color:#5a9a5a;}
+
+/* STATUS */
+#status{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:20;background:white;border:1px solid var(--panel-border);border-radius:20px;padding:6px 16px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-mid);box-shadow:0 1px 6px var(--shadow);opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+#status.show{opacity:1;}
+
+/* PANEL BASE */
+.panel{position:fixed;z-index:30;background:white;border:1px solid var(--panel-border);border-radius:14px;box-shadow:0 8px 32px var(--shadow);pointer-events:all;display:none;}
+.panel.open{display:block;}
+.panel-title{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-light);margin-bottom:16px;}
+.p-label{font-size:11px;font-weight:500;color:var(--text-dark);margin-bottom:6px;display:block;}
+.p-sublabel{font-size:10px;color:var(--text-light);margin-bottom:8px;line-height:1.5;display:block;}
+.p-row{display:flex;gap:8px;align-items:center;}
+.p-input{flex:1;background:#f4f2ee;border:1px solid rgba(0,0,0,0.12);border-radius:7px;color:#1a1916;font-family:'DM Mono',monospace;font-size:11px;padding:7px 10px;outline:none;transition:border-color .2s;}
+.p-input:focus{border-color:#002fa7;}
+.p-select{flex:1;background:var(--bg);border:1px solid var(--panel-border);border-radius:7px;color:var(--text-dark);font-family:'DM Sans',sans-serif;font-size:11px;padding:7px 10px;outline:none;cursor:pointer;}
+.p-btn{padding:7px 16px;border-radius:7px;border:1px solid var(--idea-stroke);background:var(--idea-fill);color:var(--idea-text);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.p-btn:hover{background:var(--idea-stroke);color:white;}
+.p-btn.danger{border-color:#cc8888;background:#f8e8e8;color:#882020;}
+.p-btn.danger:hover{background:#cc8888;color:white;}
+.p-section{margin-bottom:18px;}
+.p-section:last-child{margin-bottom:0;}
+.p-divider{height:1px;background:var(--panel-border);margin:16px 0;}
+.p-status{font-size:10px;color:#5a9a5a;margin-top:8px;min-height:14px;}
+
+/* NETWORKS PANEL */
+#networks-panel{top:54px;left:50%;transform:translateX(-50%);padding:20px 24px;width:400px;max-height:70vh;overflow-y:auto;}
+.net-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;max-height:280px;overflow-y:auto;}
+.net-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.1);background:#f8f7f5;cursor:pointer;transition:all .15s;}
+.net-item:hover{border-color:#8fa8cc;background:#eef2f8;}
+.net-item.active-net{border-color:#002fa7;background:#e8eef8;}
+.net-item-name{flex:1;font-size:12px;font-weight:500;color:#1a1916;}
+.net-item-meta{font-size:10px;color:#8a8780;}
+.net-item-del{width:20px;height:20px;border-radius:50%;border:1px solid rgba(0,0,0,0.1);background:transparent;color:#cc8888;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.net-item-del:hover{background:#f8e8e8;border-color:#cc8888;}
+.net-new-row{display:flex;gap:8px;align-items:center;}
+.net-new-input{flex:1;background:#f4f2ee;border:1px solid rgba(0,0,0,0.12);border-radius:7px;color:#1a1916;font-family:'DM Sans',sans-serif;font-size:11px;padding:7px 10px;outline:none;transition:border-color .2s;}
+.net-new-input:focus{border-color:#002fa7;}
+.net-new-input::placeholder{color:#8a8780;}
+.prov-row{display:flex;gap:6px;margin-bottom:10px;}
+.prov-btn{flex:1;padding:6px;border-radius:7px;border:1.5px solid var(--panel-border);background:white;color:var(--text-mid);font-family:'DM Sans',sans-serif;font-size:10px;cursor:pointer;transition:all .15s;text-align:center;}
+.prov-btn.active{border-color:var(--idea-stroke);background:var(--idea-fill);color:var(--idea-text);font-weight:500;}
+
+/* IMPORT PANEL */
+#import-panel{top:54px;left:50%;transform:translateX(-50%);padding:20px 24px;width:420px;}
+.import-tabs{display:flex;gap:4px;margin-bottom:16px;}
+.import-tab{flex:1;padding:6px;border-radius:7px;border:1.5px solid var(--panel-border);background:white;color:var(--text-mid);font-family:'DM Sans',sans-serif;font-size:10px;cursor:pointer;transition:all .15px;text-align:center;}
+.import-tab.active{border-color:var(--idea-stroke);background:var(--idea-fill);color:var(--idea-text);font-weight:500;}
+.import-pane{display:none;}
+.import-pane.active{display:block;}
+#paste-area{width:100%;height:120px;background:var(--bg);border:1px solid var(--panel-border);border-radius:8px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:11px;color:var(--text-dark);resize:none;outline:none;line-height:1.5;}
+#paste-area:focus{border-color:var(--idea-stroke);}
+#paste-area::placeholder{color:var(--text-light);}
+#file-drop{width:100%;height:90px;border:1.5px dashed var(--panel-border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .18s;background:var(--bg);}
+#file-drop:hover,#file-drop.drag-over{border-color:var(--idea-stroke);background:#eef2f8;}
+#file-drop-text{font-size:11px;color:var(--text-light);text-align:center;line-height:1.5;}
+#file-input{display:none;}
+
+/* PREVIEW PANEL */
+#preview-panel{top:50%;left:50%;transform:translate(-50%,-50%);padding:20px 24px;width:440px;max-height:70vh;overflow-y:auto;}
+.preview-list{margin-top:12px;display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;}
+.preview-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--panel-border);background:var(--bg);cursor:pointer;transition:all .15s;}
+.preview-item:hover{border-color:var(--idea-stroke);background:#eef2f8;}
+.preview-item.selected{border-color:var(--idea-stroke);background:var(--idea-fill);}
+.preview-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--panel-border);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .15s;}
+.preview-item.selected .preview-check{background:var(--idea-stroke);border-color:var(--idea-stroke);color:white;}
+.preview-item-label{font-size:12px;font-weight:500;color:var(--text-dark);line-height:1.2;}
+.preview-item-desc{font-size:10px;color:var(--text-mid);margin-top:2px;line-height:1.4;}
+.preview-actions{display:flex;gap:8px;margin-top:14px;align-items:center;}
+.preview-select-all{font-size:10px;color:var(--idea-stroke);cursor:pointer;text-decoration:underline;margin-right:auto;}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="hdr">
+  <div class="wordmark">
+    <span class="wordmark-eye">Doctor President</span>
+    <span class="wordmark-name">Idea Network</span>
+  </div>
+</div>
+
+<div id="add-bar">
+  <input id="node-input" type="text" placeholder="Add an idea…" maxlength="36">
+  <button id="add-btn">+ Add</button>
+</div>
+
+<div id="top-btns">
+  <button class="top-btn" id="networks-btn">⊞ Networks</button>
+  <button class="top-btn" id="import-btn">⬆ Import Ideas</button>
+  <button class="top-btn" id="settings-btn">⚙ Model Settings</button>
+  <button class="top-btn" id="save-btn">💾 Save</button>
+  <button class="top-btn danger-btn" id="reset-btn">↺ Reset</button>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div id="settings-panel" class="panel">
+  <div class="panel-title">AI Configuration</div>
+  <div class="p-section">
+    <span class="p-label">Provider</span>
+    <div class="prov-row">
+      <button class="prov-btn active" data-prov="anthropic">Anthropic</button>
+      <button class="prov-btn" data-prov="deepseek">DeepSeek</button>
+      <button class="prov-btn" data-prov="openai">OpenAI</button>
+      <button class="prov-btn" data-prov="local">Local / Tailscale</button>
+    </div>
+    <span class="p-sublabel" id="prov-note">Claude Sonnet — recommended.</span>
+  </div>
+  <div class="p-section" id="key-section">
+    <span class="p-label">API Key</span>
+    <div class="p-row">
+      <input class="p-input" type="password" id="api-key-input" placeholder="Paste your API key…">
+      <button class="p-btn" id="save-key-btn">Save</button>
+    </div>
+  </div>
+  <div class="p-section" id="local-section" style="display:none">
+    <span class="p-label">Local Server URL</span>
+    <span class="p-sublabel">Ollama default: http://&lt;tailscale-ip&gt;:11434 — LM Studio: port 1234. Must be HTTP (run this file locally, not from HTTPS).</span>
+    <div class="p-row">
+      <input class="p-input" type="text" id="local-url-input" placeholder="http://100.x.x.x:11434">
+      <button class="p-btn" id="save-local-btn">Save</button>
+    </div>
+    <span class="p-label" style="margin-top:12px">Model Name</span>
+    <div class="p-row">
+      <input class="p-input" type="text" id="local-model-input" placeholder="qwen2.5:32b">
+    </div>
+  </div>
+  <div class="p-divider"></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+    <input type="checkbox" id="persist-key-chk" style="accent-color:#002fa7;cursor:pointer;">
+    <label for="persist-key-chk" style="font-size:10px;color:#4a4840;cursor:pointer;">Remember settings across sessions (saved to browser storage)</label>
+  </div>
+  <span class="p-sublabel">Keys are stored locally in your browser only — never sent anywhere except directly to the selected provider.</span>
+  <div class="p-status" id="key-status"></div>
+</div>
+
+<!-- IMPORT PANEL -->
+<div id="import-panel" class="panel">
+  <div class="panel-title">Import Ideas</div>
+  <div class="import-tabs">
+    <button class="import-tab active" data-tab="paste">Paste Text</button>
+    <button class="import-tab" data-tab="file">Upload File</button>
+  </div>
+  <div class="import-pane active" id="tab-paste">
+    <span class="p-sublabel">Paste anything — notes, docs, a brain dump. The model will extract distinct ideas.</span>
+    <textarea id="paste-area" placeholder="Paste your notes, a Google Doc, Apple Notes export, anything…"></textarea>
+    <div class="p-row" style="margin-top:10px">
+      <button class="p-btn" id="parse-paste-btn" style="width:100%">Extract Ideas</button>
+    </div>
+  </div>
+  <div class="import-pane" id="tab-file">
+    <span class="p-sublabel">Supports .txt, .md, .pdf, and images of handwritten notes (JPG/PNG).</span>
+    <div id="file-drop">
+      <div id="file-drop-text">Drop a file here<br><span style="font-size:10px;color:var(--text-light)">or click to browse</span></div>
+      <input type="file" id="file-input" accept=".txt,.md,.pdf,image/*">
+    </div>
+    <div id="file-name" style="font-size:10px;color:var(--text-mid);margin-top:8px;min-height:14px;"></div>
+    <div class="p-row" style="margin-top:10px">
+      <button class="p-btn" id="parse-file-btn" style="width:100%" disabled>Extract Ideas</button>
+    </div>
+  </div>
+  <div class="p-status" id="import-status"></div>
+</div>
+
+<!-- PREVIEW PANEL -->
+<div id="preview-panel" class="panel">
+  <div class="panel-title">Extracted Ideas</div>
+  <span class="p-sublabel" id="preview-subtitle">Select the ideas you want to add to your network.</span>
+  <div class="preview-list" id="preview-list"></div>
+  <div class="preview-actions">
+    <span class="preview-select-all" id="select-all-btn">Select all</span>
+    <button class="p-btn danger" id="cancel-preview-btn">Cancel</button>
+    <button class="p-btn" id="add-selected-btn">Add Selected</button>
+  </div>
+</div>
+
+<!-- NETWORKS PANEL -->
+<div id="networks-panel" class="panel">
+  <div class="panel-title">My Networks</div>
+  <div class="net-list" id="net-list"></div>
+  <div class="net-new-row">
+    <input class="net-new-input" type="text" id="net-name-input" placeholder="New network name…" maxlength="40">
+    <button class="p-btn" id="net-create-btn">+ Create</button>
+  </div>
+  <div class="p-status" id="net-status"></div>
+</div>
+
+<div id="tooltip">
+  <div class="tt-inner">
+    <div class="tt-header">
+      <div class="tt-type" id="tt-type"></div>
+      <div class="tt-close" id="tt-close">✕</div>
+    </div>
+    <span class="tt-label" id="tt-name"></span>
+    <span class="tt-desc" id="tt-desc"></span>
+    <span class="tt-origin" id="tt-origin"></span>
+    <span class="tt-cluster" id="tt-cluster"></span>
+    <div class="tt-scoring" id="tt-scoring" style="display:none">
+      <div class="tt-scoring-dot"></div>Mapping connections…
+    </div>
+    <button class="tt-promote" id="tt-promote" style="display:none">✦ Promote to Aspiration</button>
+  </div>
+</div>
+
+<div id="status"></div>
+
+<div id="legend">
+  <div class="leg-title">Node Types</div>
+  <div class="leg-row"><div class="leg-swatch" style="background:#c8d4e8;border-color:#8fa8cc"></div>Idea</div>
+  <div class="leg-row"><div class="leg-swatch" style="background:#dce8dc;border-color:#88b888;border-style:dashed"></div>Ghost</div>
+  <div class="leg-row"><div class="leg-swatch" style="background:#f2d4a0;border-color:#d4a040"></div>Aspiration</div>
+</div>
+
+<div id="toolbar">
+  <button class="tb-btn active" id="toggle-ideas">
+    <div class="tb-swatch" style="background:#c8d4e8;border-color:#8fa8cc"></div>Ideas
+  </button>
+  <button class="tb-btn active" id="toggle-asp">
+    <div class="tb-swatch" style="background:#f2d4a0;border-color:#d4a040"></div>Aspirations
+  </button>
+  <div class="tb-divider"></div>
+  <button class="tb-btn active" id="toggle-ghost">
+    <div class="tb-swatch" style="background:#dce8dc;border-color:#88b888"></div>Ghosts
+  </button>
+  <div class="tb-divider"></div>
+  <button class="tb-btn" id="cluster-btn">⬡ Cluster</button>
+  <button class="tb-generate" id="analyze-btn">↻ Analyze Network</button>
+  <button class="tb-generate" id="gen-btn">✦ Generate Ghosts</button>
+</div>
+
+<script>
+// ── CANVAS ──
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize(); window.addEventListener('resize', resize);
+
+// ── COLOR WHEEL SYSTEM ──
+// One offscreen canvas holds a persistent HSL color wheel.
+// Node colors are sampled from the wheel at the node's canvas position.
+// This means spatially close nodes share hues naturally — no per-cluster assignment needed.
+// In cluster mode the wheel stays fixed; as nodes migrate to corners, their hues shift.
+
+const wheelCanvas = document.createElement('canvas');
+const wheelCtx = wheelCanvas.getContext('2d');
+let wheelBuilt = false;
+let wheelSize = 0;
+
+function buildColorWheel(size) {
+  if (wheelSize === size && wheelBuilt) return;
+  wheelSize = size;
+  wheelCanvas.width = size;
+  wheelCanvas.height = size;
+  const cx = size / 2, cy = size / 2, r = size / 2;
+  const imgData = wheelCtx.createImageData(size, size);
+  const d = imgData.data;
+  for (let py = 0; py < size; py++) {
+    for (let px = 0; px < size; px++) {
+      const dx = px - cx, dy = py - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > r) { d[(py * size + px) * 4 + 3] = 0; continue; }
+      const hue = ((Math.atan2(dy, dx) / (Math.PI * 2) + 1) % 1) * 360;
+      const sat = 42 + (dist / r) * 28; // 42–70% saturation
+      const lit = 78 - (dist / r) * 14; // 78–64% lightness (stays pastel)
+      const [rr, gg, bb] = hslToRgb(hue / 360, sat / 100, lit / 100);
+      const idx = (py * size + px) * 4;
+      d[idx] = rr; d[idx + 1] = gg; d[idx + 2] = bb; d[idx + 3] = 255;
+    }
+  }
+  wheelCtx.putImageData(imgData, 0, 0);
+  wheelBuilt = true;
+}
+
+function hslToRgb(h, s, l) {
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+function hue2rgb(p, q, t) {
+  if (t < 0) t += 1; if (t > 1) t -= 1;
+  if (t < 1/6) return p + (q - p) * 6 * t;
+  if (t < 1/2) return q;
+  if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+  return p;
+}
+
+// Sample the color wheel at a canvas position. Returns {fill, stroke, text}.
+function sampleWheel(nx, ny) {
+  const size = Math.min(W, H) * 1.1;
+  buildColorWheel(Math.round(size));
+  const cx = W / 2, cy = H / 2;
+  const wx = Math.round((nx - cx) / (W / wheelSize) + wheelSize / 2);
+  const wy = Math.round((ny - cy) / (H / wheelSize) + wheelSize / 2);
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const px = clamp(wx, 0, wheelSize - 1);
+  const py = clamp(wy, 0, wheelSize - 1);
+  const d = wheelCtx.getImageData(px, py, 1, 1).data;
+  const r = d[0], g = d[1], b = d[2];
+  // Derive fill (lighter), stroke (darker), text (darkest)
+  const fill = `rgb(${r},${g},${b})`;
+  const stroke = `rgb(${Math.round(r*0.7)},${Math.round(g*0.7)},${Math.round(b*0.7)})`;
+  const text = `rgb(${Math.round(r*0.22)},${Math.round(g*0.22)},${Math.round(b*0.22)})`;
+  return { fill, stroke, text };
+}
+
+// Anchor color: returns raw RGB components so drawNode can build a radial gradient
+function sampleWheelAnchorRGB(nx, ny) {
+  const size = Math.min(W, H) * 1.1;
+  buildColorWheel(Math.round(size));
+  const cx = W / 2, cy = H / 2;
+  const wx = Math.round((nx - cx) / (W / wheelSize) + wheelSize / 2);
+  const wy = Math.round((ny - cy) / (H / wheelSize) + wheelSize / 2);
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const px = clamp(wx, 0, wheelSize - 1);
+  const py = clamp(wy, 0, wheelSize - 1);
+  const d = wheelCtx.getImageData(px, py, 1, 1).data;
+  return { r: d[0], g: d[1], b: d[2] };
+}
+
+// Kept for getNodeColors compatibility — returns stroke for shadow only
+function sampleWheelAnchor(nx, ny) {
+  const { r, g, b } = sampleWheelAnchorRGB(nx, ny);
+  return {
+    fill: `rgb(${Math.round(r*0.78)},${Math.round(g*0.78)},${Math.round(b*0.78)})`,
+    stroke: `rgb(${Math.round(r*0.55)},${Math.round(g*0.55)},${Math.round(b*0.55)})`,
+    text: 'rgb(245,242,238)',
+  };
+}
+
+// Legacy palette kept for aspirations only
+const CLUSTER_PALETTE = [
+  {fill:'#c8d4e8',stroke:'#6a8cb8',text:'#1a2a3e'},
+];
+
+const ASP_COLORS = [
+  {fill:'#f2d4a0',stroke:'#c89030',text:'#3a2800'},
+  {fill:'#f0b8c0',stroke:'#c05070',text:'#380018'},
+  {fill:'#b8d8f0',stroke:'#4080b8',text:'#082040'},
+  {fill:'#d4b8f0',stroke:'#8040c8',text:'#200840'},
+  {fill:'#b8f0d4',stroke:'#30a860',text:'#003820'},
+];
+const GHOST_COLOR = {fill:'#e8f0e8',stroke:'#88b888',text:'#2a3e2a'};
+
+const DEFAULT_REL = {
+  'AI':{'Local LLMs':0.92,'Raspberry Pi':0.6,'Physical Computing':0.55,'Installation Art':0.45},
+  'Local LLMs':{'AI':0.92,'Raspberry Pi':0.65,'Physical Computing':0.55},
+  'Raspberry Pi':{'Physical Computing':0.88,'NFC / RFID':0.75,'3D Printing':0.55,'Local LLMs':0.65},
+  'NFC / RFID':{'Raspberry Pi':0.75,'Physical Computing':0.82,'3D Printing':0.6,'Installation Art':0.5},
+  '3D Printing':{'NFC / RFID':0.6,'Raspberry Pi':0.55,'Physical Computing':0.6,'Installation Art':0.5},
+  'TouchDesigner':{'Projection Mapping':0.85,'Installation Art':0.82,'Animation':0.7},
+  'Animation':{'TouchDesigner':0.7,'Projection Mapping':0.65,'Installation Art':0.72},
+  'Projection Mapping':{'TouchDesigner':0.85,'Installation Art':0.88,'Animation':0.65},
+  'Physical Computing':{'Raspberry Pi':0.88,'NFC / RFID':0.82,'3D Printing':0.6,'Installation Art':0.6},
+  'Installation Art':{'TouchDesigner':0.82,'Projection Mapping':0.88,'Animation':0.72,'Physical Computing':0.6},
+};
+
+// ── STATE ──
+let nodes=[], relatedness={}, clock=0;
+let mouseX=-999, mouseY=-999;
+let hoveredNode=null, dragNode=null, dragOffX=0, dragOffY=0;
+let showIdeas=true, showGhosts=true, showAsp=true;
+let pinnedNode=null;
+let apiKey=null, apiProvider='anthropic', localURL='', localModel='qwen2.5:32b';
+let clusterMode=false;
+let analyzing=false;
+// Cluster data: {name, cx, cy, targetX, targetY, anchorNode}
+let clusters={};
+// node.clusterId = primary cluster name; node.clusterIdSecondary = optional bridge cluster
+
+const PROV_NOTES = {
+  anthropic:'Claude Sonnet — recommended. Requires an Anthropic API key.',
+  deepseek:'DeepSeek V3 — great value, fractions of a cent per use.',
+  openai:'GPT-4o — solid quality. Requires an OpenAI API key.',
+  local:'Ollama or LM Studio via Tailscale. Run this file locally (not from HTTPS).',
+};
+
+// ── SEED ──
+const SEED = [
+  {label:'AI',desc:'Local and cloud models, inference, creative applications.'},
+  {label:'Raspberry Pi',desc:'Low-power computing for physical installations.'},
+  {label:'NFC / RFID',desc:'Enchanted objects. Tap-to-trigger experiences.'},
+  {label:'3D Printing',desc:'Bambu Labs P1S. Functional objects, enclosures, wearables.'},
+  {label:'TouchDesigner',desc:'Real-time generative visuals and interactive installations.'},
+  {label:'Animation',desc:'Motion, timing, character — the language of movement.'},
+  {label:'Projection\nMapping',desc:'Painting light onto physical surfaces.'},
+  {label:'Physical\nComputing',desc:'Sensors, actuators — the world as interface.'},
+  {label:'Local LLMs',desc:'Private, on-device intelligence.'},
+  {label:'Installation\nArt',desc:'Space, viewer, and object in conversation.'},
+];
+
+// ── NODE FACTORY ──
+let nid=0;
+function makeNode(label,desc,type,x,y,origin){
+  const id=nid++;
+  const baseR=type==='ghost'?34+Math.random()*18:type==='aspiration'?40+Math.random()*22:type==='anchor'?46:38+Math.random()*26;
+  const colors=type==='ghost'?GHOST_COLOR:type==='aspiration'?ASP_COLORS[id%ASP_COLORS.length]:{fill:'#c8d4e8',stroke:'#8fa8cc',text:'#1e2d42'};
+  return {
+    id,type,label,desc,origin,
+    x:x!=null?x:W/2+(Math.random()-.5)*W*0.5,
+    y:y!=null?y:H/2+(Math.random()-.5)*H*0.4,
+    vx:(Math.random()-.5)*0.5, vy:(Math.random()-.5)*0.5,
+    r:baseR, visibleR:0,
+    // scaleR: the current display radius including cluster-mode shrink + hover expansion
+    scaleR:baseR,
+    breathPhase:Math.random()*Math.PI*2, metabolism:0.45+Math.random()*0.55,
+    colors,
+    aspIdx:id%ASP_COLORS.length,
+    gradAngle:Math.random()*Math.PI*2, gradSpeed:0.003+Math.random()*0.004,
+    hovered:false, unscored:false,
+    clusterId:null, clusterIdSecondary:null,
+  };
+}
+
+function initNodes(){
+  nodes=[];
+  relatedness=JSON.parse(JSON.stringify(DEFAULT_REL));
+  clusters={};
+  const count=SEED.length;
+  for(let i=0;i<count;i++){
+    const angle=(i/count)*Math.PI*2-Math.PI/2;
+    const r=Math.min(W,H)*0.3;
+    const n=makeNode(SEED[i].label,SEED[i].desc,'idea',W/2+Math.cos(angle)*r,H/2+Math.sin(angle)*r);
+    n.visibleR=n.r; nodes.push(n);
+  }
+}
+
+// ── LABEL NORMALIZATION (Thread Bug Fix) ──
+// Normalize labels for robust string matching in relatedness lookups
+function normalizeLabel(label){
+  return label.replace(/\n/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+}
+
+// Build a normalized lookup cache from the relatedness map
+function buildRelCache(){
+  const cache={};
+  for(const k of Object.keys(relatedness)){
+    cache[normalizeLabel(k)]=k;
+  }
+  return cache;
+}
+let _relCache=null;
+function getRelCache(){ if(!_relCache) _relCache=buildRelCache(); return _relCache; }
+function invalidateRelCache(){ _relCache=null; }
+
+function getRel(a,b){
+  const la=normalizeLabel(a.label);
+  const lb=normalizeLabel(b.label);
+  const cache=getRelCache();
+  const ka=cache[la], kb=cache[lb];
+  if(ka&&kb){
+    return relatedness[ka]?.[kb]??relatedness[kb]?.[ka]??0;
+  }
+  // Fuzzy fallback: find closest key by prefix
+  let bestA=null, bestB=null;
+  for(const norm of Object.keys(cache)){
+    if(!bestA&&(norm.startsWith(la.substring(0,4))||la.startsWith(norm.substring(0,4)))) bestA=cache[norm];
+    if(!bestB&&(norm.startsWith(lb.substring(0,4))||lb.startsWith(norm.substring(0,4)))) bestB=cache[norm];
+  }
+  if(bestA&&bestB) return relatedness[bestA]?.[bestB]??relatedness[bestB]?.[bestA]??0;
+  return 0;
+}
+
+function setRel(la,lb,score){
+  if(!relatedness[la]) relatedness[la]={};
+  if(!relatedness[lb]) relatedness[lb]={};
+  relatedness[la][lb]=score;
+  relatedness[lb][la]=score;
+  invalidateRelCache();
+}
+
+// ── CLUSTER PHYSICS ──
+function computeClusterCentroids(){
+  const keys=Object.keys(clusters);
+  if(keys.length<2) return;
+  // Arrange cluster centroids in a circle
+  const radius=Math.min(W,H)*0.28;
+  keys.forEach(function(name,i){
+    const angle=(i/keys.length)*Math.PI*2-Math.PI/2;
+    clusters[name].targetX=W/2+Math.cos(angle)*radius;
+    clusters[name].targetY=H/2+Math.sin(angle)*radius;
+    if(clusters[name].cx===undefined){
+      clusters[name].cx=clusters[name].targetX;
+      clusters[name].cy=clusters[name].targetY;
+    }
+    // Smoothly lerp centroid labels toward targets
+    clusters[name].cx+=(clusters[name].targetX-clusters[name].cx)*0.04;
+    clusters[name].cy+=(clusters[name].targetY-clusters[name].cy)*0.04;
+  });
+}
+
+// ── PHYSICS ──
+function updatePhysics(){
+  // Cluster-mode scale: regular nodes shrink to 55%, hover expands back to 100%
+  const clusterShrink = 0.55;
+  for(const n of nodes){
+    const t=shouldShow(n)?n.r:0;
+    n.visibleR+=(t-n.visibleR)*0.08;
+    // scaleR: displayed radius (shrinks in cluster mode, expands on hover)
+    let targetScale = n.visibleR;
+    if(clusterMode && n.type!=='anchor'){
+      targetScale = n.hovered ? n.visibleR : n.visibleR * clusterShrink;
+    }
+    if(n.scaleR===undefined) n.scaleR=n.visibleR;
+    n.scaleR+=(targetScale-n.scaleR)*0.12;
+  }
+
+  const active=nodes.filter(function(n){return n.visibleR>4;});
+
+  if(clusterMode) computeClusterCentroids();
+
+  const attractK = clusterMode ? 0.45 : 0.15;
+
+  for(let i=0;i<active.length;i++){
+    const a=active[i];
+    // Anchor nodes: pin to their cluster centroid
+    if(a.type==='anchor'){
+      if(clusterMode&&a.clusterId&&clusters[a.clusterId]){
+        a.x+=(clusters[a.clusterId].cx-a.x)*0.06;
+        a.y+=(clusters[a.clusterId].cy-a.y)*0.06;
+      }
+      a.vx=0; a.vy=0;
+      continue;
+    }
+    if(a===dragNode) continue;
+    let fx=0,fy=0;
+    const aR = a.scaleR||a.visibleR;
+    for(let j=0;j<active.length;j++){
+      if(i===j) continue;
+      const b=active[j];
+      const bR = b.scaleR||b.visibleR;
+      const dx=a.x-b.x, dy=a.y-b.y, dist=Math.sqrt(dx*dx+dy*dy)||0.01;
+      const minD=aR+bR+10;
+      if(dist<minD){ const f=((minD-dist)/minD)*3.2; fx+=(dx/dist)*f; fy+=(dy/dist)*f; }
+      // Anchors only repel — no semantic attraction toward them
+      if(b.type==='anchor') continue;
+      const rel=getRel(a,b);
+      if(rel>0.3){
+        const idealD=(aR+bR)*(1+(1-rel)*(clusterMode?1.5:3.5));
+        if(dist>idealD){ const pull=((dist-idealD)/dist)*rel*attractK; fx-=(dx/dist)*pull; fy-=(dy/dist)*pull; }
+      }
+    }
+
+    if(clusterMode && a.clusterId && clusters[a.clusterId]){
+      const cx=clusters[a.clusterId].cx||W/2;
+      const cy=clusters[a.clusterId].cy||H/2;
+      const cdx=cx-a.x, cdy=cy-a.y, cd=Math.sqrt(cdx*cdx+cdy*cdy)||1;
+      const clusterK=0.18;
+      fx+=(cdx/cd)*clusterK*cd*0.02; fy+=(cdy/cd)*clusterK*cd*0.02;
+      if(a.clusterIdSecondary&&clusters[a.clusterIdSecondary]){
+        const cx2=clusters[a.clusterIdSecondary].cx||W/2;
+        const cy2=clusters[a.clusterIdSecondary].cy||H/2;
+        const midX=(cx+cx2)/2, midY=(cy+cy2)/2;
+        const mdx=midX-a.x, mdy=midY-a.y, md=Math.sqrt(mdx*mdx+mdy*mdy)||1;
+        fx+=(mdx/md)*0.04*md*0.02; fy+=(mdy/md)*0.04*md*0.02;
+      }
+    } else {
+      const cdx=W/2-a.x, cdy=H/2-a.y, cd=Math.sqrt(cdx*cdx+cdy*cdy)||1;
+      const centerK = clusterMode ? 0.01 : 0.06;
+      fx+=(cdx/cd)*centerK; fy+=(cdy/cd)*centerK;
+    }
+
+    a.vx=(a.vx+fx)*0.85; a.vy=(a.vy+fy)*0.85;
+    const spd=Math.sqrt(a.vx*a.vx+a.vy*a.vy);
+    if(spd>4){a.vx=(a.vx/spd)*4;a.vy=(a.vy/spd)*4;}
+    a.x+=a.vx; a.y+=a.vy;
+    const mg=50;
+    if(a.x<mg)a.vx+=1; if(a.x>W-mg)a.vx-=1;
+    if(a.y<mg)a.vy+=1; if(a.y>H-mg)a.vy-=1;
+  }
+}
+
+function applySemanticDrag(dn,dx,dy){
+  for(const o of nodes){
+    if(o===dn||o.visibleR<4) continue;
+    const rel=getRel(dn,o); if(rel<0.25) continue;
+    const pull=rel*rel*0.55; o.x+=dx*pull; o.y+=dy*pull; o.vx*=0.5; o.vy*=0.5;
+  }
+}
+
+function shouldShow(n){ return n.type==='anchor'?clusterMode:n.type==='idea'?showIdeas:n.type==='ghost'?showGhosts:n.type==='aspiration'?showAsp:true; }
+
+// ── CLUSTER ANCHORS ──
+// Create or refresh anchor nodes (one per cluster) — deep solid colored, physics-pinned to centroid
+function syncClusterAnchors(){
+  // Remove old anchors
+  nodes=nodes.filter(function(n){return n.type!=='anchor';});
+  for(const name of Object.keys(clusters)){
+    const c=clusters[name];
+    const ax=c.cx||W/2, ay=c.cy||H/2;
+    const an=makeNode(name,'',  'anchor', ax, ay, null);
+    an.visibleR=an.r; an.clusterId=name; an.vx=0; an.vy=0;
+    an.clusterName=name;
+    nodes.push(an);
+    c.anchorNode=an;
+  }
+}
+
+// ── DRAW HELPERS ──
+function hexA(hex,a){
+  if(!hex||!hex.startsWith('#')) return hex;
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return 'rgba('+r+','+g+','+b+','+a.toFixed(3)+')';
+}
+function rgbA(rgb,a){
+  // accepts 'rgb(r,g,b)' or '#rrggbb'
+  if(rgb&&rgb.startsWith('#')) return hexA(rgb,a);
+  if(rgb&&rgb.startsWith('rgb(')){
+    const m=rgb.match(/(\d+),(\d+),(\d+)/);
+    if(m) return 'rgba('+m[1]+','+m[2]+','+m[3]+','+a.toFixed(3)+')';
+  }
+  return rgb;
+}
+
+function getNodeColors(n){
+  if(n.type==='ghost') return GHOST_COLOR;
+  if(n.type==='aspiration') return ASP_COLORS[n.aspIdx%ASP_COLORS.length];
+  if(n.type==='anchor') return sampleWheelAnchor(n.x, n.y);
+  // All idea/ghost nodes: sample the color wheel at their position
+  return sampleWheel(n.x, n.y);
+}
+
+function drawNode(n){
+  const R=n.scaleR||n.visibleR; if(R<2) return;
+  const alpha=Math.min(1,(n.visibleR||0)/n.r);
+  const colors=getNodeColors(n);
+  const {fill,stroke,text}=colors;
+  ctx.save();
+  if(n.type==='aspiration') n.gradAngle+=n.gradSpeed;
+  if(n.hovered||n===pinnedNode){ ctx.shadowColor=stroke; ctx.shadowBlur=n===pinnedNode?22:14; }
+  if(n.type==='anchor'){
+    ctx.shadowBlur=16; ctx.shadowColor=stroke;
+  }
+  ctx.beginPath(); ctx.arc(n.x,n.y,R,0,Math.PI*2);
+  if(n.type==='anchor'){
+    // Radial gradient: light pastel center → deep saturated edge (inverted)
+    const {r:wr,g:wg,b:wb}=sampleWheelAnchorRGB(n.x,n.y);
+    const grd=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,R);
+    grd.addColorStop(0,`rgba(${Math.round(wr*0.92)},${Math.round(wg*0.92)},${Math.round(wb*0.92)},${alpha.toFixed(3)})`);
+    grd.addColorStop(1,`rgba(${Math.round(wr*0.42)},${Math.round(wg*0.42)},${Math.round(wb*0.42)},${alpha.toFixed(3)})`);
+    ctx.fillStyle=grd;
+  } else if(n.type==='aspiration'){
+    const gx1=n.x+Math.cos(n.gradAngle)*R,gy1=n.y+Math.sin(n.gradAngle)*R;
+    const gx2=n.x+Math.cos(n.gradAngle+Math.PI)*R,gy2=n.y+Math.sin(n.gradAngle+Math.PI)*R;
+    const c1=ASP_COLORS[n.aspIdx],c2=ASP_COLORS[(n.aspIdx+1)%ASP_COLORS.length];
+    const grd=ctx.createLinearGradient(gx1,gy1,gx2,gy2);
+    grd.addColorStop(0,hexA(c1.fill,alpha)); grd.addColorStop(1,hexA(c2.fill,alpha));
+    ctx.fillStyle=grd;
+  } else {
+    ctx.fillStyle=rgbA(fill,alpha);
+  }
+  ctx.fill();
+  ctx.beginPath(); ctx.arc(n.x,n.y,R,0,Math.PI*2);
+  if(n.type==='ghost'){
+    ctx.save(); ctx.setLineDash([5,5]);
+    ctx.strokeStyle=rgbA(stroke,alpha*(n.hovered?0.9:0.55)); ctx.lineWidth=n.hovered?2:1.5;
+    ctx.stroke(); ctx.restore();
+  } else {
+    ctx.strokeStyle=rgbA(stroke,alpha*(n.hovered?0.9:(n.type==='anchor'?0.7:0.5)));
+    ctx.lineWidth=(n.hovered||n===pinnedNode||n.type==='anchor')?2.5:1.5; ctx.stroke();
+  }
+  if(n.unscored){
+    const pulse=0.5+0.5*Math.sin(clock*2.5);
+    ctx.beginPath(); ctx.arc(n.x,n.y,R+5+pulse*3,0,Math.PI*2);
+    ctx.strokeStyle='rgba(184,144,48,'+(0.25+pulse*0.35)+')';
+    ctx.lineWidth=1.5; ctx.setLineDash([3,5]); ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.restore();
+
+  const isAnchor=n.type==='anchor';
+  const showLabel=isAnchor||(R>16&&(n.hovered||!clusterMode))||(R>22);
+  if(showLabel){
+    const ta=isAnchor?Math.min(1,alpha):Math.min(1,(R-16)/20)*alpha;
+    ctx.save();
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+
+    // Helper: max text width at vertical offset dy from center of circle radius R
+    // (chord width at that y: w = 2*sqrt(R²-dy²), with padding)
+    function chordWidth(circR, dy){ return 2*Math.sqrt(Math.max(0, circR*circR - dy*dy))*0.88; }
+
+    if(isAnchor){
+      // Word-wrap to fit inside circle using chord constraint per line
+      const words=n.label.replace('\n',' ').split(' ');
+      let fs=Math.max(9,Math.min(14,R*0.3));
+      ctx.font='600 '+fs+'px \'DM Sans\', sans-serif';
+
+      // Build lines respecting max width at their vertical position
+      function buildLines(fontSize){
+        ctx.font='600 '+fontSize+'px \'DM Sans\', sans-serif';
+        const lh=fontSize*1.28;
+        const lines=[];
+        let cur='';
+        for(const w of words){
+          const test=cur?cur+' '+w:w;
+          // Estimate y-offset for this line (rough: center block)
+          const estLines=Math.ceil(words.join(' ').length/(test.length||1));
+          const estTotalH=estLines*lh;
+          const lineIdx=lines.length;
+          const dy=Math.abs((lineIdx-(estLines-1)/2)*lh);
+          const maxW=chordWidth(R,dy);
+          if(ctx.measureText(test).width>maxW && cur){ lines.push(cur); cur=w; }
+          else { cur=test; }
+        }
+        if(cur) lines.push(cur);
+        return lines;
+      }
+
+      let lines=buildLines(fs);
+      const lh=fs*1.28;
+      // Verify all lines fit at their chord; shrink if needed
+      let fits=false;
+      while(!fits && fs>7){
+        lines=buildLines(fs);
+        const totalH=(lines.length-1)*lh;
+        fits=lines.every(function(l,i){
+          const dy=Math.abs((i-(lines.length-1)/2)*lh);
+          return ctx.measureText(l).width<=chordWidth(R,dy);
+        }) && totalH < R*1.6;
+        if(!fits) fs-=0.5;
+      }
+      ctx.font='600 '+fs+'px \'DM Sans\', sans-serif';
+      const totalH=(lines.length-1)*lh;
+      ctx.fillStyle='rgba(245,242,238,'+ta+')';
+      lines.forEach(function(l,i){
+        ctx.fillText(l, n.x, n.y - totalH/2 + i*lh);
+      });
+    } else {
+      // Regular nodes: wrap label within circle, same chord constraint
+      const rawLines=n.label.split('\n');
+      let fs=Math.max(8,Math.min(13,R*0.28));
+      ctx.font='500 '+fs+'px \'DM Sans\', sans-serif';
+      // Expand each raw line by word-wrapping if too wide
+      function wrapRegular(fontSize){
+        ctx.font='500 '+fontSize+'px \'DM Sans\', sans-serif';
+        const lh=fontSize*1.25;
+        const out=[];
+        for(const raw of rawLines){
+          const words=raw.split(' ');
+          let cur='';
+          for(const w of words){
+            const test=cur?cur+' '+w:w;
+            const lineIdx=out.length;
+            const dy=Math.abs(lineIdx*lh);
+            const maxW=chordWidth(R,dy)*0.9;
+            if(ctx.measureText(test).width>maxW && cur){ out.push(cur); cur=w; }
+            else { cur=test; }
+          }
+          if(cur) out.push(cur);
+        }
+        return out;
+      }
+      let lines=wrapRegular(fs);
+      let lh=fs*1.25;
+      // Shrink until everything fits
+      while(fs>7){
+        lines=wrapRegular(fs); lh=fs*1.25;
+        const totalH=(lines.length-1)*lh;
+        const fits=lines.every(function(l,i){
+          const dy=Math.abs((i-(lines.length-1)/2)*lh);
+          return ctx.measureText(l).width<=chordWidth(R,dy)*0.9;
+        }) && totalH<R*1.7;
+        if(fits) break;
+        fs-=0.5;
+      }
+      ctx.font='500 '+fs+'px \'DM Sans\', sans-serif';
+      const totalH=(lines.length-1)*lh;
+      ctx.fillStyle=rgbA(text,ta*(n.hovered?1:0.85));
+      lines.forEach(function(l,i){
+        ctx.fillText(l, n.x, n.y - totalH/2 + i*lh);
+      });
+    }
+    ctx.restore();
+  }
+}
+
+function drawHoverThreads(){
+  const hn=hoveredNode||pinnedNode; if(!hn) return;
+  for(const o of nodes){
+    if(o===hn||o.visibleR<8) continue;
+    const rel=getRel(hn,o);
+    if(rel<0.3) continue;
+    const op=rel*0.6, lw=0.8+rel*2.5;
+    ctx.save(); ctx.beginPath(); ctx.moveTo(hn.x,hn.y); ctx.lineTo(o.x,o.y);
+    if(rel>0.75) ctx.strokeStyle='rgba(80,100,180,'+op+')';
+    else if(rel>0.5) ctx.strokeStyle='rgba(80,140,80,'+op+')';
+    else ctx.strokeStyle='rgba(120,110,90,'+op+')';
+    ctx.lineWidth=lw; ctx.stroke(); ctx.restore();
+  }
+}
+
+// ── MAIN LOOP ──
+function drawGrid(){
+  const spacing = 32;
+  const dotR = 1.8;
+  ctx.fillStyle = 'rgba(245,242,238,0.22)';
+  const offX = W % spacing / 2;
+  const offY = H % spacing / 2;
+  for(let x = offX; x < W; x += spacing){
+    for(let y = offY; y < H; y += spacing){
+      ctx.beginPath();
+      ctx.arc(x, y, dotR, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+}
+
+function draw(){
+  clock+=0.016;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle='#002fa7'; ctx.fillRect(0,0,W,H);
+  drawGrid();
+  drawHoverThreads();
+  // Anchor nodes render behind everything
+  for(const n of nodes) if(n.type==='anchor') drawNode(n);
+  for(const n of nodes) if(n.type==='idea') drawNode(n);
+  for(const n of nodes) if(n.type==='ghost') drawNode(n);
+  for(const n of nodes) if(n.type==='aspiration') drawNode(n);
+  hoveredNode=null;
+  for(const n of [...nodes].reverse()){
+    if(n.type==='anchor') continue; // anchors not hoverable
+    if((n.scaleR||n.visibleR)<8) continue;
+    const dx=mouseX-n.x, dy=mouseY-n.y;
+    if(Math.sqrt(dx*dx+dy*dy)<(n.scaleR||n.visibleR)*1.1){ hoveredNode=n; break; }
+  }
+  for(const n of nodes) n.hovered=(n===hoveredNode);
+  canvas.style.cursor=(hoveredNode||dragNode)?'pointer':'default';
+  updatePhysics();
+  requestAnimationFrame(draw);
+}
+
+// ── TOOLTIP ──
+function posTT(node){
+  const ttW=250,ttH=240;
+  let tx=node.x+node.visibleR+16, ty=node.y-40;
+  if(tx+ttW>W-16) tx=node.x-ttW-16;
+  if(ty+ttH>H-16) ty=H-ttH-16;
+  if(ty<16) ty=16;
+  const tt=document.getElementById('tooltip');
+  tt.style.left=tx+'px'; tt.style.top=ty+'px';
+}
+
+function showTT(node){
+  const promote=document.getElementById('tt-promote');
+  const originEl=document.getElementById('tt-origin');
+  const scoringEl=document.getElementById('tt-scoring');
+  const clusterEl=document.getElementById('tt-cluster');
+  document.getElementById('tt-type').textContent=node.type.toUpperCase();
+  document.getElementById('tt-name').textContent=node.label.replace('\n',' ');
+  document.getElementById('tt-desc').textContent=node.desc||'';
+  if(node.type==='ghost'){
+    originEl.style.display='block';
+    originEl.textContent=node.origin?'Inspired by: '+node.origin:'';
+    promote.style.display='flex';
+    promote.onclick=function(e){ e.stopPropagation(); promoteToAsp(node); };
+  } else { originEl.style.display='none'; promote.style.display='none'; }
+  // Show cluster info
+  if(node.clusterId){
+    clusterEl.style.display='block';
+    // Sample color at node's position for the dot
+    const sample=sampleWheel(node.x,node.y);
+    const dot='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+sample.stroke+';margin-right:5px;"></span>';
+    clusterEl.innerHTML=dot+'<span style="color:'+sample.stroke+';font-weight:500;">'+node.clusterId+'</span>'+(node.clusterIdSecondary?' <span style="color:var(--text-light)">+ '+node.clusterIdSecondary+'</span>':'');
+  } else { clusterEl.style.display='none'; }
+  scoringEl.style.display=node.unscored?'flex':'none';
+  document.getElementById('tt-close').style.display='flex';
+  posTT(node); document.getElementById('tooltip').classList.add('show');
+}
+
+function hideTT(){
+  document.getElementById('tooltip').classList.remove('show');
+  pinnedNode=null;
+  document.getElementById('tt-close').style.display='none';
+}
+
+document.getElementById('tt-close').addEventListener('click',function(e){ e.stopPropagation(); hideTT(); });
+
+// ── PROMOTE ──
+function promoteToAsp(node){
+  node.type='aspiration'; node.aspIdx=Math.floor(Math.random()*ASP_COLORS.length);
+  node.colors=ASP_COLORS[node.aspIdx]; node.gradAngle=Math.random()*Math.PI*2;
+  node.gradSpeed=0.003+Math.random()*0.004; node.r*=1.15; node.visibleR=node.r*1.4;
+  setStatus('✦ Aspiration committed'); showTT(node);
+}
+
+// ── API ──
+async function callAPI(prompt, maxTokens){
+  let res;
+  if(apiProvider==='anthropic'){
+    res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
+    });
+  } else if(apiProvider==='deepseek'){
+    res=await fetch('https://api.deepseek.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+      body:JSON.stringify({model:'deepseek-chat',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
+    });
+  } else if(apiProvider==='openai'){
+    res=await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+      body:JSON.stringify({model:'gpt-4o',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
+    });
+  } else {
+    const base=localURL.replace(/\/$/,'');
+    res=await fetch(base+'/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:localModel,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
+    });
+  }
+  if(!res.ok){ const e=await res.text(); throw new Error('API '+res.status+': '+e); }
+  const data=await res.json();
+  const raw=apiProvider==='anthropic'
+    ?(data.content?.find(function(b){return b.type==='text';})?.text||'')
+    :(data.choices?.[0]?.message?.content||'');
+  // Strip <think> tags (Qwen3), markdown fences
+  let clean=raw.replace(/<think>[\s\S]*?<\/think>/gi,'').replace(/```[a-zA-Z]*\n?/gi,'').replace(/```/g,'').trim();
+  const s=clean.indexOf('{'), e2=clean.lastIndexOf('}');
+  if(s===-1||e2===-1) throw new Error('No JSON in response');
+  return JSON.parse(clean.slice(s,e2+1));
+}
+
+function hasAI(){ return apiKey||(apiProvider==='local'&&localURL); }
+
+// ── GHOST GENERATION ──
+async function generateGhosts(){
+  if(!hasAI()){ setStatus('Configure a model in Settings first'); openPanel('settings'); return; }
+  const ideaNodes=nodes.filter(function(n){return n.type==='idea';});
+  if(ideaNodes.length===0){setStatus('Add some ideas first.');return;}
+  const genBtn=document.getElementById('gen-btn');
+  genBtn.disabled=true; genBtn.classList.add('loading'); genBtn.textContent='✦ Thinking…';
+  nodes=nodes.filter(function(n){return n.type!=='ghost';});
+  setStatus('Generating ghost nodes…');
+
+  const ideaLabels=ideaNodes.map(function(n){return n.label.replace('\n',' ');}).join(', ');
+
+  const nodesPrompt='You are a creative strategist helping a multidisciplinary artist discover new directions.\n\nTheir current ideas: '+ideaLabels+'\n\nGenerate exactly 8 aspiration nodes — unexpected, specific directions that emerge from combining these interests. Be concrete and evocative, not generic.\n\nRespond ONLY with valid JSON, no markdown:\n{"nodes":[{"label":"2-4 words","desc":"one sentence","origin":"2-3 idea labels comma separated"}]}';
+
+  try{
+    const parsed=await callAPI(nodesPrompt, 900);
+    const nodeList=parsed.nodes||[];
+    nodeList.forEach(function(s,i){
+      const parts=(s.origin||'').split(',').map(function(x){return x.trim().toLowerCase();});
+      let cx=0,cy=0,count=0;
+      for(const idea of ideaNodes){
+        const lbl=idea.label.replace('\n',' ').toLowerCase();
+        if(parts.some(function(o){return lbl.includes(o)||o.includes(lbl.split(' ')[0]);})){cx+=idea.x;cy+=idea.y;count++;}
+      }
+      if(count===0){cx=W/2;cy=H/2;}else{cx/=count;cy/=count;}
+      const ang=(i/nodeList.length)*Math.PI*2, dist=90+Math.random()*100;
+      const gn=makeNode(s.label,s.desc,'ghost',cx+Math.cos(ang)*dist,cy+Math.sin(ang)*dist,s.origin);
+      gn.unscored=true;
+      nodes.push(gn);
+    });
+    if(!showGhosts){showGhosts=true;document.getElementById('toggle-ghost').classList.add('active');}
+    setStatus(nodeList.length+' ghost nodes generated — run Analyze Network to map connections');
+  } catch(e){ console.error(e); setStatus('Generation failed: '+e.message); }
+
+  genBtn.disabled=false; genBtn.classList.remove('loading'); genBtn.textContent='✦ Regenerate';
+}
+
+// ── ANALYZE NETWORK — includes cluster assignment ──
+async function analyzeNetwork(){
+  if(!hasAI()){ setStatus('Configure a model in Settings first'); openPanel('settings'); return; }
+  if(analyzing) return;
+  const allNodes=nodes.filter(function(n){return n.visibleR>4||n.unscored;});
+  if(allNodes.length<2){setStatus('Need at least 2 nodes to analyze.');return;}
+
+  analyzing=true;
+  const btn=document.getElementById('analyze-btn');
+  btn.disabled=true; btn.classList.add('loading'); btn.textContent='↻ Analyzing…';
+  setStatus('Analyzing network connections…');
+
+  const labels=allNodes.map(function(n){return n.label.replace('\n',' ');});
+
+  // Two-part prompt: relatedness + clustering in one call
+  const nodeCount = labels.length;
+  const clusterCap = Math.min(5, Math.max(3, Math.round(nodeCount / 4)));
+  const relPrompt='You are analyzing a creative idea network.\n\nConcepts: '+labels.join(', ')+'\n\nDo TWO things and return them in a single JSON object:\n\n1. "relatedness": Score semantic relatedness between every pair (0.0-1.0). Only include scores above 0.1. Return as a symmetric object.\n\n2. "clusters": Group ALL concepts into EXACTLY '+clusterCap+' thematic clusters — no more, no fewer. This is a hard constraint. Merge similar themes aggressively. Every concept must belong to one of these '+clusterCap+' clusters. Choose evocative 2-3 word cluster names. Optionally assign a secondary cluster for true bridge concepts only (use sparingly).\n\nExample with 3 clusters: {"relatedness":{"A":{"B":0.8}},"clusters":{"A":{"primary":"Digital Tools","secondary":null},"B":{"primary":"Physical Making","secondary":null},"C":{"primary":"Digital Tools","secondary":"Physical Making"}}}\n\nRespond ONLY with valid JSON, no markdown:\n{"relatedness":{"ConceptA":{"ConceptB":0.8}},"clusters":{"ConceptA":{"primary":"Cluster Name","secondary":null}}}';
+
+  try{
+    const result=await callAPI(relPrompt, 3200);
+
+    // Merge relatedness
+    if(result.relatedness){
+      for(const la of Object.keys(result.relatedness)){
+        if(!relatedness[la]) relatedness[la]={};
+        for(const lb of Object.keys(result.relatedness[la])){
+          const score=result.relatedness[la][lb];
+          relatedness[la][lb]=score;
+          if(!relatedness[lb]) relatedness[lb]={};
+          relatedness[lb][la]=score;
+        }
+      }
+      invalidateRelCache();
+    }
+
+    // Process cluster assignments
+    if(result.clusters){
+      // Reset cluster registry
+      clusters={};
+      let colorCounter=0;
+      for(const n of allNodes){
+        const key=n.label.replace('\n',' ');
+        // Try exact match first, then normalized
+        let assignment=result.clusters[key];
+        if(!assignment){
+          const normKey=normalizeLabel(n.label);
+          for(const ck of Object.keys(result.clusters)){
+            if(normalizeLabel(ck)===normKey){ assignment=result.clusters[ck]; break; }
+          }
+        }
+        if(assignment){
+          n.clusterId=assignment.primary||null;
+          n.clusterIdSecondary=assignment.secondary||null;
+          if(n.clusterId&&!clusters[n.clusterId]){
+            clusters[n.clusterId]={colorIdx:colorCounter++, cx:undefined, cy:undefined};
+          }
+          if(n.clusterIdSecondary&&!clusters[n.clusterIdSecondary]){
+            clusters[n.clusterIdSecondary]={colorIdx:colorCounter++, cx:undefined, cy:undefined};
+          }
+        }
+      }
+      syncClusterAnchors();
+    }
+
+    // Clear unscored flags
+    for(const n of nodes) n.unscored=false;
+    const clusterCount=Object.keys(clusters).length;
+    setStatus('Network analyzed — '+labels.length+' nodes, '+clusterCount+' clusters found');
+    autoSave();
+  } catch(e){ console.error(e); setStatus('Analysis failed: '+e.message); }
+
+  analyzing=false;
+  btn.disabled=false; btn.classList.remove('loading'); btn.textContent='↻ Analyze Network';
+}
+
+// ── ADD NODE ──
+function addNode(label, desc){
+  const n=makeNode(label,desc||'Your idea.','idea');
+  n.visibleR=0; n.unscored=true;
+  nodes.push(n);
+  setStatus('"'+label+'" added — run Analyze Network to map connections');
+  return n;
+}
+
+// ── CLUSTER TOGGLE ──
+document.getElementById('cluster-btn').addEventListener('click',function(){
+  clusterMode=!clusterMode;
+  this.classList.toggle('active',clusterMode);
+  if(clusterMode&&Object.keys(clusters).length===0){
+    setStatus('Run Analyze Network first to enable clustering');
+    clusterMode=false; this.classList.remove('active');
+    return;
+  }
+  // Show/hide anchor nodes based on cluster mode
+  for(const n of nodes){
+    if(n.type==='anchor'){
+      if(clusterMode){ n.visibleR=0; n.scaleR=0; } // will animate in via physics
+    }
+  }
+  if(clusterMode) syncClusterAnchors(); // ensure anchors exist
+  setStatus(clusterMode?'Cluster mode on — nodes migrating to neighborhoods':'Cluster mode off');
+});
+
+document.getElementById('analyze-btn').addEventListener('click', analyzeNetwork);
+
+// ── PERSISTENCE — Multi-network + Settings ──
+const SETTINGS_KEY='idea-network-settings';
+const NETWORKS_INDEX_KEY='idea-network-index';
+let activeNetworkId='default';
+
+// Settings persistence
+function saveSettings(){
+  try{
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      provider:apiProvider, key:apiKey, localURL, localModel,
+    }));
+  } catch(e){}
+}
+function loadSettings(){
+  try{
+    const raw=localStorage.getItem(SETTINGS_KEY);
+    if(!raw) return;
+    const s=JSON.parse(raw);
+    if(s.provider){ apiProvider=s.provider; }
+    if(s.key){ apiKey=s.key; document.getElementById('api-key-input').value='••••••••'; }
+    if(s.localURL){ localURL=s.localURL; document.getElementById('local-url-input').value=s.localURL; }
+    if(s.localModel){ localModel=s.localModel; document.getElementById('local-model-input').value=s.localModel; }
+    // Sync provider buttons
+    document.querySelectorAll('.prov-btn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.prov===apiProvider);
+    });
+    document.getElementById('prov-note').textContent=PROV_NOTES[apiProvider]||'';
+    document.getElementById('key-section').style.display=apiProvider==='local'?'none':'block';
+    document.getElementById('local-section').style.display=apiProvider==='local'?'block':'none';
+    document.getElementById('persist-key-chk').checked=true;
+  } catch(e){}
+}
+
+// Network index: [{id, name, createdAt}]
+function getNetworkIndex(){
+  try{ return JSON.parse(localStorage.getItem(NETWORKS_INDEX_KEY))||[]; } catch(e){ return []; }
+}
+function saveNetworkIndex(idx){
+  localStorage.setItem(NETWORKS_INDEX_KEY, JSON.stringify(idx));
+}
+function networkStorageKey(id){ return 'idea-network-data-'+id; }
+
+function serializeState(){
+  return JSON.stringify({
+    nodes: nodes.filter(function(n){return n.type!=='anchor';}).map(function(n){
+      return {
+        id:n.id, type:n.type, label:n.label, desc:n.desc, origin:n.origin||null,
+        x:Math.round(n.x), y:Math.round(n.y), r:n.r,
+        aspIdx:n.aspIdx, gradAngle:n.gradAngle,
+        clusterId:n.clusterId||null, clusterIdSecondary:n.clusterIdSecondary||null,
+        unscored:n.unscored||false,
+      };
+    }),
+    relatedness: relatedness,
+    clusters: clusters,
+    nid: nid,
+  });
+}
+
+function saveState(showMsg){
+  try{
+    // Ensure network exists in index
+    let idx=getNetworkIndex();
+    if(!idx.find(function(n){return n.id===activeNetworkId;})){
+      idx.push({id:activeNetworkId, name:'Default', createdAt:Date.now()});
+      saveNetworkIndex(idx);
+    }
+    localStorage.setItem(networkStorageKey(activeNetworkId), serializeState());
+    if(showMsg!==false) setStatus('Network saved');
+  } catch(e){ setStatus('Save failed: '+e.message); }
+}
+
+function loadNetworkById(id){
+  try{
+    const raw=localStorage.getItem(networkStorageKey(id));
+    if(!raw) return false;
+    const data=JSON.parse(raw);
+    if(!data.nodes||data.nodes.length===0) return false;
+    nodes=[]; nid=data.nid||0;
+    relatedness=data.relatedness||JSON.parse(JSON.stringify(DEFAULT_REL));
+    clusters=data.clusters||{};
+    invalidateRelCache();
+    for(const s of data.nodes){
+      if(s.type==='anchor') continue;
+      const colors=s.type==='ghost'?GHOST_COLOR:s.type==='aspiration'?ASP_COLORS[s.aspIdx%ASP_COLORS.length]:{fill:'#c8d4e8',stroke:'#8fa8cc',text:'#1e2d42'};
+      const n={
+        id:s.id, type:s.type, label:s.label, desc:s.desc, origin:s.origin||null,
+        x:s.x, y:s.y, vx:0, vy:0, r:s.r, visibleR:s.r, scaleR:s.r,
+        breathPhase:Math.random()*Math.PI*2, metabolism:0.45+Math.random()*0.55,
+        colors, aspIdx:s.aspIdx||0, gradAngle:s.gradAngle||0, gradSpeed:0.003+Math.random()*0.004,
+        hovered:false, unscored:s.unscored||false,
+        clusterId:s.clusterId||null, clusterIdSecondary:s.clusterIdSecondary||null,
+      };
+      nodes.push(n);
+    }
+    if(Object.keys(clusters).length>0) syncClusterAnchors();
+    activeNetworkId=id;
+    return true;
+  } catch(e){ console.error('Load failed',e); return false; }
+}
+
+function loadState(){
+  // Try loading the active network (default)
+  return loadNetworkById(activeNetworkId);
+}
+
+function autoSave(){ saveState(false); }
+
+// ── NETWORKS UI ──
+function renderNetworksList(){
+  const list=document.getElementById('net-list');
+  const idx=getNetworkIndex();
+  list.innerHTML='';
+  if(idx.length===0){
+    list.innerHTML='<div style="font-size:11px;color:#8a8780;padding:8px 0">No saved networks yet.</div>';
+    return;
+  }
+  idx.forEach(function(net){
+    const item=document.createElement('div');
+    item.className='net-item'+(net.id===activeNetworkId?' active-net':'');
+    const date=new Date(net.createdAt).toLocaleDateString();
+    item.innerHTML='<div class="net-item-name">'+escHTML(net.name)+'</div>'
+      +'<div class="net-item-meta">'+date+'</div>'
+      +'<button class="net-item-del" title="Delete" data-id="'+net.id+'">✕</button>';
+    item.addEventListener('click',function(e){
+      if(e.target.classList.contains('net-item-del')) return;
+      // Save current before switching
+      saveState(false);
+      const ok=loadNetworkById(net.id);
+      if(!ok){ initNodes(); activeNetworkId=net.id; }
+      clusterMode=false;
+      document.getElementById('cluster-btn').classList.remove('active');
+      closeAllPanels();
+      setStatus('Switched to "'+net.name+'"');
+      renderNetworksList();
+    });
+    item.querySelector('.net-item-del').addEventListener('click',function(e){
+      e.stopPropagation();
+      if(!confirm('Delete "'+net.name+'"? This cannot be undone.')) return;
+      localStorage.removeItem(networkStorageKey(net.id));
+      const newIdx=getNetworkIndex().filter(function(n){return n.id!==net.id;});
+      saveNetworkIndex(newIdx);
+      if(net.id===activeNetworkId){
+        // Switch to another network or create fresh default
+        if(newIdx.length>0){ loadNetworkById(newIdx[0].id); setStatus('Switched to "'+newIdx[0].name+'"'); }
+        else { activeNetworkId='default'; initNodes(); setStatus('All networks cleared — starting fresh'); }
+      }
+      renderNetworksList();
+    });
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('networks-btn').addEventListener('click',function(e){
+  e.stopPropagation();
+  if(document.getElementById('networks-panel').classList.contains('open')){ closeAllPanels(); return; }
+  renderNetworksList();
+  openPanel('networks');
+});
+
+document.getElementById('net-create-btn').addEventListener('click',function(){
+  const nameInput=document.getElementById('net-name-input');
+  const name=nameInput.value.trim();
+  if(!name){ document.getElementById('net-status').textContent='Enter a name first.'; return; }
+  // Save current network
+  saveState(false);
+  // Create new
+  const id='net-'+Date.now();
+  const idx=getNetworkIndex();
+  // Ensure default is in index if first time
+  if(!idx.find(function(n){return n.id===activeNetworkId;})){
+    const curName=idx.length===0?'Default':activeNetworkId;
+    idx.unshift({id:activeNetworkId,name:curName,createdAt:Date.now()-1});
+  }
+  idx.push({id, name, createdAt:Date.now()});
+  saveNetworkIndex(idx);
+  activeNetworkId=id;
+  clusters={}; nodes=[]; relatedness=JSON.parse(JSON.stringify(DEFAULT_REL));
+  invalidateRelCache(); initNodes();
+  clusterMode=false; document.getElementById('cluster-btn').classList.remove('active');
+  nameInput.value='';
+  document.getElementById('net-status').textContent='';
+  closeAllPanels();
+  setStatus('"'+name+'" created — start adding ideas');
+  // Save initial state
+  autoSave();
+});
+
+document.getElementById('save-btn').addEventListener('click',function(){ saveState(); });
+
+document.getElementById('reset-btn').addEventListener('click',function(){
+  if(!confirm('Reset this network to the default seed nodes?')) return;
+  clusters={}; invalidateRelCache(); initNodes();
+  clusterMode=false; document.getElementById('cluster-btn').classList.remove('active');
+  wheelBuilt=false; autoSave();
+  setStatus('Network reset to defaults');
+});
+
+// ── IMPORT / PARSE ──
+let pendingPreviews=[];
+
+async function parseContent(content, isImage, imageData){
+  if(!hasAI()){ setStatus('Configure a model in Settings first'); openPanel('settings'); return; }
+  setImportStatus('Extracting ideas…');
+
+  const existingLabels=nodes.filter(function(n){return n.type==='idea';}).map(function(n){return n.label.replace('\n',' ');});
+  const existingCtx=existingLabels.length?'\n\nAlready in the network (avoid duplicates): '+existingLabels.join(', '):'';
+
+  let parsed;
+
+  if(isImage){
+    if(apiProvider==='deepseek'||apiProvider==='local'){
+      setImportStatus('Image parsing requires Anthropic or OpenAI.');
+      return;
+    }
+    try{
+      let res;
+      const imgPrompt='Extract distinct ideas, concepts, and topics from this image of notes. For each, give a short label (2-4 words) and one sentence description.\n\nRespond ONLY with valid JSON, no markdown:\n{"ideas":[{"label":"...","desc":"..."}]}'+existingCtx;
+      if(apiProvider==='anthropic'){
+        res=await fetch('https://api.anthropic.com/v1/messages',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+          body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:imageData.type,data:imageData.data}},{type:'text',text:imgPrompt}]}]})
+        });
+      } else {
+        res=await fetch('https://api.openai.com/v1/chat/completions',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+          body:JSON.stringify({model:'gpt-4o',max_tokens:1200,messages:[{role:'user',content:[{type:'image_url',image_url:{url:'data:'+imageData.type+';base64,'+imageData.data}},{type:'text',text:imgPrompt}]}]})
+        });
+      }
+      if(!res.ok) throw new Error('API '+res.status);
+      const data=await res.json();
+      const raw=apiProvider==='anthropic'?(data.content?.find(function(b){return b.type==='text';})?.text||''):(data.choices?.[0]?.message?.content||'');
+      let clean=raw.replace(/<think>[\s\S]*?<\/think>/gi,'').replace(/```[a-zA-Z]*\n?/gi,'').replace(/```/g,'').trim();
+      const s=clean.indexOf('{'),e2=clean.lastIndexOf('}');
+      parsed=JSON.parse(clean.slice(s,e2+1));
+    } catch(e){ setImportStatus('Image parse failed: '+e.message); return; }
+  } else {
+    const trimmed=content.slice(0,8000);
+    const prompt='Extract all distinct ideas, concepts, topics, and intentions from the following text. For each, give a short label (2-4 words) and one sentence description.\n\nRespond ONLY with valid JSON, no markdown:\n{"ideas":[{"label":"...","desc":"..."}]}'+existingCtx+'\n\nText:\n'+trimmed;
+    try{ parsed=await callAPI(prompt,1200); } catch(e){ setImportStatus('Parse failed: '+e.message); return; }
+  }
+
+  const ideas=parsed.ideas||[];
+  if(ideas.length===0){ setImportStatus('No ideas found.'); return; }
+  pendingPreviews=ideas;
+  setImportStatus('');
+  showPreview(ideas);
+}
+
+function showPreview(ideas){
+  const list=document.getElementById('preview-list');
+  document.getElementById('preview-subtitle').textContent='Found '+ideas.length+' ideas. Select which to add.';
+  list.innerHTML='';
+  ideas.forEach(function(idea,i){
+    const item=document.createElement('div');
+    item.className='preview-item selected';
+    item.dataset.idx=i;
+    item.innerHTML='<div class="preview-check">&#10003;</div><div><div class="preview-item-label">'+escHTML(idea.label)+'</div><div class="preview-item-desc">'+escHTML(idea.desc)+'</div></div>';
+    item.addEventListener('click',function(){
+      item.classList.toggle('selected');
+      item.querySelector('.preview-check').innerHTML=item.classList.contains('selected')?'&#10003;':'';
+    });
+    list.appendChild(item);
+  });
+  openPanel('preview');
+}
+
+document.getElementById('select-all-btn').addEventListener('click',function(){
+  const items=document.querySelectorAll('.preview-item');
+  const allSel=Array.from(items).every(function(i){return i.classList.contains('selected');});
+  items.forEach(function(item){
+    if(allSel){item.classList.remove('selected');item.querySelector('.preview-check').innerHTML='';}
+    else{item.classList.add('selected');item.querySelector('.preview-check').innerHTML='&#10003;';}
+  });
+  this.textContent=allSel?'Select all':'Deselect all';
+});
+
+document.getElementById('add-selected-btn').addEventListener('click',function(){
+  const items=document.querySelectorAll('.preview-item.selected');
+  let count=0;
+  items.forEach(function(item){
+    const idea=pendingPreviews[parseInt(item.dataset.idx)];
+    if(idea){addNode(idea.label,idea.desc);count++;}
+  });
+  closeAllPanels();
+  setStatus(count+' ideas added — run Analyze Network to map connections');
+  autoSave();
+});
+
+document.getElementById('cancel-preview-btn').addEventListener('click',function(){closeAllPanels();});
+
+// ── FILE HANDLING ──
+let pendingFileData=null;
+
+document.getElementById('file-drop').addEventListener('click',function(){document.getElementById('file-input').click();});
+document.getElementById('file-drop').addEventListener('dragover',function(e){e.preventDefault();this.classList.add('drag-over');});
+document.getElementById('file-drop').addEventListener('dragleave',function(){this.classList.remove('drag-over');});
+document.getElementById('file-drop').addEventListener('drop',function(e){e.preventDefault();this.classList.remove('drag-over');handleFile(e.dataTransfer.files[0]);});
+document.getElementById('file-input').addEventListener('change',function(){if(this.files[0])handleFile(this.files[0]);});
+
+function handleFile(file){
+  if(!file) return;
+  document.getElementById('file-name').textContent=file.name+' ('+Math.round(file.size/1024)+'KB)';
+  document.getElementById('parse-file-btn').disabled=false;
+  pendingFileData={file:file};
+}
+
+document.getElementById('parse-file-btn').addEventListener('click',async function(){
+  if(!pendingFileData) return;
+  const file=pendingFileData.file, type=file.type;
+  const btn=this; btn.textContent='Extracting…'; btn.disabled=true;
+  if(type.startsWith('image/')){
+    const reader=new FileReader();
+    reader.onload=function(e){parseContent(null,true,{type:type,data:e.target.result.split(',')[1]}).finally(function(){btn.textContent='Extract Ideas';btn.disabled=false;});};
+    reader.readAsDataURL(file);
+  } else if(type==='application/pdf'){
+    setImportStatus('Reading PDF…');
+    const reader=new FileReader();
+    reader.onload=async function(e){
+      try{
+        if(!window.pdfjsLib){
+          await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+        const pdf=await window.pdfjsLib.getDocument({data:e.target.result}).promise;
+        let text='';
+        for(let i=1;i<=Math.min(pdf.numPages,20);i++){
+          const page=await pdf.getPage(i);
+          const content=await page.getTextContent();
+          text+=content.items.map(function(item){return item.str;}).join(' ')+'\n';
+        }
+        await parseContent(text,false,null);
+      } catch(err){setImportStatus('PDF read failed: '+err.message);}
+      btn.textContent='Extract Ideas'; btn.disabled=false;
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader=new FileReader();
+    reader.onload=function(e){parseContent(e.target.result,false,null).finally(function(){btn.textContent='Extract Ideas';btn.disabled=false;});};
+    reader.readAsText(file);
+  }
+});
+
+document.getElementById('parse-paste-btn').addEventListener('click',function(){
+  const text=document.getElementById('paste-area').value.trim();
+  if(!text){setImportStatus('Paste some text first.');return;}
+  const btn=this; btn.textContent='Extracting…'; btn.disabled=true;
+  parseContent(text,false,null).finally(function(){btn.textContent='Extract Ideas';btn.disabled=false;});
+});
+
+function loadScript(src){
+  return new Promise(function(resolve,reject){
+    const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);
+  });
+}
+function escHTML(str){const d=document.createElement('div');d.textContent=str;return d.innerHTML;}
+function setImportStatus(msg){document.getElementById('import-status').textContent=msg;}
+
+// ── PANELS ──
+function openPanel(id){closeAllPanels();document.getElementById(id+'-panel').classList.add('open');}
+function closeAllPanels(){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('open');});}
+
+document.getElementById('settings-btn').addEventListener('click',function(e){
+  e.stopPropagation();
+  document.getElementById('settings-panel').classList.contains('open')?closeAllPanels():openPanel('settings');
+});
+document.getElementById('import-btn').addEventListener('click',function(e){
+  e.stopPropagation();
+  document.getElementById('import-panel').classList.contains('open')?closeAllPanels():openPanel('import');
+});
+
+document.querySelectorAll('.import-tab').forEach(function(tab){
+  tab.addEventListener('click',function(){
+    document.querySelectorAll('.import-tab').forEach(function(t){t.classList.remove('active');});
+    document.querySelectorAll('.import-pane').forEach(function(p){p.classList.remove('active');});
+    tab.classList.add('active');
+    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+document.querySelectorAll('.prov-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.prov-btn').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active'); apiProvider=btn.dataset.prov;
+    document.getElementById('prov-note').textContent=PROV_NOTES[apiProvider];
+    document.getElementById('key-section').style.display=apiProvider==='local'?'none':'block';
+    document.getElementById('local-section').style.display=apiProvider==='local'?'block':'none';
+  });
+});
+
+document.getElementById('save-key-btn').addEventListener('click',function(){
+  const val=document.getElementById('api-key-input').value.trim();
+  if(!val&&!apiKey){document.getElementById('key-status').textContent='Enter a key first.';return;}
+  if(val) apiKey=val;
+  if(document.getElementById('persist-key-chk').checked) saveSettings();
+  document.getElementById('key-status').textContent='Key saved'+(document.getElementById('persist-key-chk').checked?' (persisted)':' for this session')+'.';
+  setTimeout(function(){closeAllPanels();document.getElementById('key-status').textContent='';},1200);
+});
+
+document.getElementById('save-local-btn').addEventListener('click',function(){
+  localURL=document.getElementById('local-url-input').value.trim();
+  localModel=document.getElementById('local-model-input').value.trim()||'qwen2.5:32b';
+  if(document.getElementById('persist-key-chk').checked) saveSettings();
+  document.getElementById('key-status').textContent='Local server saved'+(document.getElementById('persist-key-chk').checked?' (persisted)':'')+'.';
+  setTimeout(function(){closeAllPanels();document.getElementById('key-status').textContent='';},1200);
+});
+
+document.getElementById('persist-key-chk').addEventListener('change',function(){
+  if(!this.checked){ localStorage.removeItem(SETTINGS_KEY); setStatus('Settings cleared from storage'); }
+  else if(apiKey||localURL) saveSettings();
+});
+
+// ── EVENTS ──
+document.getElementById('gen-btn').addEventListener('click',generateGhosts);
+document.getElementById('toggle-ideas').addEventListener('click',function(){showIdeas=!showIdeas;this.classList.toggle('active',showIdeas);});
+document.getElementById('toggle-ghost').addEventListener('click',function(){showGhosts=!showGhosts;this.classList.toggle('active',showGhosts);});
+document.getElementById('toggle-asp').addEventListener('click',function(){showAsp=!showAsp;this.classList.toggle('active',showAsp);});
+
+document.getElementById('add-btn').addEventListener('click',function(){addNodeFromInput();});
+document.getElementById('node-input').addEventListener('keydown',function(e){if(e.key==='Enter')addNodeFromInput();});
+function addNodeFromInput(){
+  const input=document.getElementById('node-input');
+  const val=input.value.trim(); if(!val) return;
+  addNode(val); input.value='';
+  autoSave();
+}
+
+canvas.addEventListener('mousemove',function(e){
+  mouseX=e.clientX; mouseY=e.clientY;
+  if(dragNode){
+    const nx=e.clientX+dragOffX, ny=e.clientY+dragOffY;
+    const dx=nx-dragNode.x, dy=ny-dragNode.y;
+    dragNode.x=nx; dragNode.y=ny; dragNode.vx=0; dragNode.vy=0;
+    applySemanticDrag(dragNode,dx,dy);
+    if(pinnedNode===dragNode) posTT(dragNode);
+  }
+});
+
+canvas.addEventListener('mousedown',function(e){
+  closeAllPanels();
+  for(const n of [...nodes].reverse()){
+    if(n.type==='anchor') continue;
+    if((n.scaleR||n.visibleR)<8) continue;
+    const dx=e.clientX-n.x, dy=e.clientY-n.y;
+    if(Math.sqrt(dx*dx+dy*dy)<(n.scaleR||n.visibleR)*1.1){dragNode=n;dragOffX=n.x-e.clientX;dragOffY=n.y-e.clientY;break;}
+  }
+});
+
+canvas.addEventListener('click',function(e){
+  let clicked=null;
+  for(const n of [...nodes].reverse()){
+    if(n.type==='anchor') continue;
+    if((n.scaleR||n.visibleR)<8) continue;
+    const dx=e.clientX-n.x, dy=e.clientY-n.y;
+    if(Math.sqrt(dx*dx+dy*dy)<(n.scaleR||n.visibleR)*1.1){clicked=n;break;}
+  }
+  if(clicked){if(pinnedNode===clicked)hideTT();else{pinnedNode=clicked;showTT(clicked);}}
+  else hideTT();
+});
+
+canvas.addEventListener('mouseup',function(){dragNode=null;});
+canvas.addEventListener('mouseleave',function(){mouseX=-999;mouseY=-999;});
+
+document.addEventListener('click',function(e){
+  const tt=document.getElementById('tooltip');
+  if(!tt.contains(e.target)&&e.target!==canvas){
+    let inPanel=false;
+    document.querySelectorAll('.panel').forEach(function(p){if(p.contains(e.target))inPanel=true;});
+    if(!inPanel) hideTT();
+  }
+});
+
+// ── STATUS ──
+let statusTimer;
+function setStatus(msg){
+  const el=document.getElementById('status');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(statusTimer);
+  statusTimer=setTimeout(function(){el.classList.remove('show');},4000);
+}
+
+// ── INIT ──
+loadSettings();
+const loaded=loadState();
+if(!loaded){
+  initNodes();
+  // Seed the default network into the index if not present
+  const idx=getNetworkIndex();
+  if(!idx.find(function(n){return n.id==='default';})){
+    idx.push({id:'default',name:'Default',createdAt:Date.now()});
+    saveNetworkIndex(idx);
+  }
+}
+draw();
+if(loaded) setStatus('Network restored');
+</script>
+</body>
+</html>
